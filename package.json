@@ -1,0 +1,83 @@
+{
+  "name": "@asyntai/medusa-plugin-ai-search",
+  "version": "1.0.0",
+  "description": "Asyntai AI Search for Medusa. A search bar that understands what a shopper means and answers from your catalogue.",
+  "author": "Asyntai <support@asyntai.com>",
+  "license": "MIT",
+  "exports": {
+    "./package.json": "./package.json",
+    "./.medusa/server/src/modules/*": "./.medusa/server/src/modules/*/index.js",
+    "./modules/*": "./.medusa/server/src/modules/*/index.js",
+    "./providers/*": "./.medusa/server/src/providers/*/index.js",
+    "./*": "./.medusa/server/src/*.js",
+    "./admin": {
+      "import": "./.medusa/server/src/admin/index.mjs",
+      "require": "./.medusa/server/src/admin/index.js",
+      "default": "./.medusa/server/src/admin/index.js"
+    }
+  },
+  "keywords": [
+    "medusa-plugin-integration",
+    "medusa-v2",
+    "medusa-plugin-search",
+    "medusa-plugin",
+    "asyntai",
+    "ai search",
+    "semantic search",
+    "product search",
+    "ecommerce"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/asyntai/medusa-ai-search"
+  },
+  "files": [
+    ".medusa/server"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "medusa plugin:build",
+    "dev": "medusa plugin:develop",
+    "db:generate": "medusa plugin:db:generate",
+    "publish:local": "medusa plugin:publish"
+  },
+  "devDependencies": {
+    "@medusajs/admin-sdk": "2.18.0",
+    "@medusajs/cli": "2.18.0",
+    "@medusajs/framework": "2.18.0",
+    "@medusajs/icons": "2.18.0",
+    "@medusajs/medusa": "2.18.0",
+    "@medusajs/test-utils": "2.18.0",
+    "@medusajs/ui": "4.0.22",
+    "@mikro-orm/cli": "6.6.14",
+    "@mikro-orm/core": "6.6.14",
+    "@mikro-orm/knex": "6.6.14",
+    "@mikro-orm/migrations": "6.6.14",
+    "@mikro-orm/postgresql": "6.6.14",
+    "@swc/core": "^1.5.7",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.2",
+    "@types/react-dom": "^18.2.25",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2",
+    "yalc": "^1.0.0-pre.53"
+  },
+  "peerDependencies": {
+    "@medusajs/admin-sdk": "2.18.0",
+    "@medusajs/cli": "2.18.0",
+    "@medusajs/framework": "2.18.0",
+    "@medusajs/icons": "2.18.0",
+    "@medusajs/medusa": "2.18.0",
+    "@medusajs/test-utils": "2.18.0",
+    "@medusajs/ui": "4.0.22",
+    "@mikro-orm/cli": "6.6.14",
+    "@mikro-orm/core": "6.6.14",
+    "@mikro-orm/knex": "6.6.14",
+    "@mikro-orm/migrations": "6.6.14",
+    "@mikro-orm/postgresql": "6.6.14"
+  }
+}

@@ -1,0 +1,42 @@
+# Publish @asyntai/medusa-plugin-ai-search to npm whenever a GitHub Release
+# is published.
+#
+# This is the "publish from the browser" path: create a Release on GitHub, and
+# this runs `npm publish` for you. One-time setup: an npm automation token
+# stored as the repository secret NPM_TOKEN.
+#
+# The version published is whatever package.json says, so bump it there before
+# creating the release, and use the same number as the tag.
+#
+# Unlike our plain npm packages, this one has to be BUILT first: what npm
+# publishes is `.medusa/server`, which `medusa plugin:build` produces and which
+# is not in this repository.
+
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write # lets npm attach provenance to the published package
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      - run: npx medusa plugin:build
+
+      - run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
