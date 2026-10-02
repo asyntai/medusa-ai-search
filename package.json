@@ -1,6 +1,6 @@
 {
   "name": "@asyntai/medusa-plugin-ai-search",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Asyntai AI Search for Medusa. A search bar that understands what a shopper means and answers from your catalogue.",
   "author": "Asyntai <support@asyntai.com>",
   "license": "MIT",

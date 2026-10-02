@@ -368,7 +368,7 @@ function one(
     return null
   }
 
-  const title = String(row.title || "").trim()
+  const title = plainText(String(row.title || ""))
 
   if (!title) {
     return null
@@ -411,13 +411,16 @@ function one(
     out.currency = currency.toUpperCase()
   }
 
+  const inStock = saleable(variants)
   const quantity = stockQuantity(variants)
 
-  if (quantity !== null) {
+  // A product still for sale at 0 (backorders) gets no number, so the feed
+  // never says 0 and In Stock about the same product.
+  if (quantity !== null && !(quantity <= 0 && inStock)) {
     out.quantity = quantity
   }
 
-  out.stock_status = saleable(variants) ? "In Stock" : "Out Of Stock"
+  out.stock_status = inStock ? "In Stock" : "Out Of Stock"
 
   const categories = names(row.categories, "name")
 
@@ -564,10 +567,16 @@ function stockQuantity(variants: any[]): number | null {
   let counted = false
 
   for (const variant of variants) {
+    // A variant that sells without limit (stock not managed, or backorders
+    // allowed) makes any total an undercount of what a shopper can buy.
+    if (!variant?.manage_inventory || variant?.allow_backorder) {
+      return null
+    }
+
     const quantity = variantQuantity(variant)
 
     if (quantity === null) {
-      continue
+      return null
     }
 
     counted = true
@@ -620,14 +629,47 @@ function money(value: number): string {
   return value.toFixed(4)
 }
 
-/** Description HTML reduced to the sentences a shopper would read. */
+/** Layers of escaping undone before tags are removed. Real data has one or two. */
+const MAX_DECODE_PASSES = 5
+
+/**
+ * HTML reduced to the text a shopper would read. Used for names too.
+ *
+ * Entities are decoded FIRST, until nothing changes, and tags are removed
+ * after that. In the other order an escaped value ("&lt;b&gt;") comes back
+ * as live markup once the strip is done.
+ *
+ * Because the text is decoded before the strip, a tag is matched only when
+ * "<" is followed by a letter or "/", so "5 < 10 cm" keeps its words.
+ */
 function plainText(html: string): string {
   let text = String(html || "")
 
-  text = text.replace(/<script[\s\S]*?<\/script>/gi, " ")
-  text = text.replace(/<style[\s\S]*?<\/style>/gi, " ")
-  text = text.replace(/<[^>]+>/g, " ")
-  text = decodeEntities(text)
+  for (let i = 0; i < MAX_DECODE_PASSES; i++) {
+    const decoded = decodeEntities(text)
+
+    if (decoded === text) {
+      break
+    }
+
+    text = decoded
+  }
+
+  // Until nothing changes: removing one tag can join the pieces around it
+  // into another ("<scr<b>ipt>").
+  for (let i = 0; i < MAX_DECODE_PASSES; i++) {
+    const before = text
+    text = text.replace(/<script\b[\s\S]*?(?:<\/script\s*>|$)/gi, " ")
+    text = text.replace(/<style\b[\s\S]*?(?:<\/style\s*>|$)/gi, " ")
+    text = text.replace(/<!--[\s\S]*?(?:-->|$)/g, " ")
+    text = text.replace(/<\/?[a-zA-Z][^<>]*>/g, " ")
+    // A tag cut off at the very end, with no ">" to close it.
+    text = text.replace(/<\/?[a-zA-Z][^<>]*$/, " ")
+
+    if (text === before) {
+      break
+    }
+  }
 
   // A non-breaking space is not matched by \s, so it is named here.
   text = text.replace(/[\s ]+/g, " ").trim()
@@ -639,14 +681,40 @@ function plainText(html: string): string {
   return text
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+  nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'",
+  deg: "°", euro: "€", pound: "£", copy: "©", reg: "®", trade: "™",
+  hellip: "…", mdash: "—", ndash: "–", lsquo: "‘", rsquo: "’",
+  ldquo: "“", rdquo: "”", times: "×",
+}
+
+/**
+ * One round of entity decoding: the common named ones and every numeric one.
+ * Each entity is read from the text as it stood before this round, so
+ * "&amp;lt;" becomes "&lt;" here and "<" only on the next round.
+ */
 function decodeEntities(value: string): string {
-  return value
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#0?39;|&apos;/gi, "'")
+  return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, body: string) => {
+    if (body[0] === "#") {
+      const code = body[1] === "x" || body[1] === "X"
+        ? parseInt(body.slice(2), 16)
+        : parseInt(body.slice(1), 10)
+
+      if (!Number.isFinite(code) || code < 1 || code > 0x10ffff) {
+        return whole
+      }
+
+      try {
+        return String.fromCodePoint(code)
+      } catch (e) {
+        return whole
+      }
+    }
+
+    const named = NAMED_ENTITIES[body.toLowerCase()]
+
+    return named === undefined ? whole : named
+  })
 }
 
 function names(rows: unknown, key: string): string[] {
